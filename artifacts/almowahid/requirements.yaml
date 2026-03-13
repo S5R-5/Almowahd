@@ -1,0 +1,11 @@
+packages:
+  "framer-motion": "Required for smooth page transitions, sidebar sliding, and custom dropdown animations"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to merge tailwind classes safely"
+
+images: []
+
+notes:
+  - Pure frontend application with no backend requirements.
+  - Fully RTL layout (dir="rtl", lang="ar").
+  - Requires popup blocker to be disabled when searching "All Sites" since it opens multiple tabs simultaneously.
