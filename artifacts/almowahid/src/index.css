@@ -120,3 +120,118 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.5);
 }
+
+/* =========================================
+   Google Custom Search Engine — RTL Styling
+   ========================================= */
+
+/* Hide the built-in Google search box (we use our own) */
+.gsc-search-box,
+.gsc-search-button,
+.gsst_a,
+.gsc-input-box {
+  display: none !important;
+}
+
+/* Results wrapper */
+.gsc-results-wrapper-overlay,
+.gsc-results-wrapper-visible {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+/* Each result item */
+.gsc-webResult.gsc-result {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 1rem !important;
+  padding: 1.25rem 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+  transition: box-shadow 0.2s, border-color 0.2s !important;
+  direction: rtl !important;
+}
+.gsc-webResult.gsc-result:hover {
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.10) !important;
+  border-color: hsl(var(--primary) / 0.35) !important;
+}
+
+/* Result title link */
+.gs-title, .gs-title * {
+  color: hsl(var(--primary)) !important;
+  font-family: var(--font-display) !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+.gs-title:hover, .gs-title *:hover {
+  text-decoration: underline !important;
+}
+
+/* Snippet / description */
+.gs-snippet, .gs-snippet * {
+  color: hsl(var(--muted-foreground)) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.65 !important;
+}
+
+/* Visible URL */
+.gsc-url-top, .gs-visibleUrl, .gs-visibleUrl-long {
+  color: hsl(var(--primary) / 0.7) !important;
+  font-size: 0.78rem !important;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Pagination */
+.gsc-cursor-box {
+  text-align: center !important;
+  margin-top: 1.5rem !important;
+  direction: rtl !important;
+}
+.gsc-cursor-page {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.4rem 0.75rem !important;
+  margin: 0 0.2rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+}
+.gsc-cursor-current-page {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+/* "No results" message */
+.gs-no-results-result .gs-snippet {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 1rem !important;
+}
+
+/* Remove Google branding bar */
+.gcsc-branding {
+  display: none !important;
+}
+
+/* Stats bar (e.g. "About X results") */
+.gsc-result-info {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 0.82rem !important;
+  padding: 0.5rem 0 1rem !important;
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+/* Remove unwanted outer table styling */
+.gsc-table-result,
+.gsc-thumbnail-inside,
+.gsc-url-top {
+  direction: rtl !important;
+}
