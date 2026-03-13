@@ -240,9 +240,7 @@ export default function Home() {
             </div>
 
             <div className="mt-16 text-center p-6 bg-muted/50 rounded-2xl border border-border border-dashed max-w-2xl mx-auto">
-              <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                في الإصدار الكامل، يمكن إضافة خادم خلفي (Backend) بتقنيات مثل Python Flask و BeautifulSoup لجلب نتائج البحث (Scraping) وعرضها مباشرة هنا بدلاً من فتح نوافذ جديدة.
-              </p>
+              <p className="text-sm text-muted-foreground font-medium leading-relaxed">قم بمشاركة الموقع فالدال على الخير كفاعله .</p>
             </div>
           </motion.div>
         )}
