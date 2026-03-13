@@ -72,9 +72,7 @@ export default function Home() {
           <BookOpen className="w-10 h-10" />
         </div>
         <h2 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-4">أداة البحث الموحد في الفتاوى </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          اكتب كلمتك البحثية، وسنقوم بالبحث عنها مباشرة في المواقع الرسمية لمشايخنا الكرام.
-        </p>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">اكتب موضوع بحثك، وسنقوم بالبحث عنه مباشرة في المواقع الرسمية لمشايخنا .</p>
       </motion.div>
       {/* Search Form Card */}
       <motion.form 
