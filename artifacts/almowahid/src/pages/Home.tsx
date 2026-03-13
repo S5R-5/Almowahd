@@ -61,7 +61,6 @@ export default function Home() {
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 flex flex-col items-center">
-      
       {/* Hero Section */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -72,14 +71,11 @@ export default function Home() {
         <div className="inline-flex items-center justify-center p-4 bg-primary/10 text-primary rounded-full mb-6 ring-4 ring-primary/5">
           <BookOpen className="w-10 h-10" />
         </div>
-        <h2 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-4">
-          البحث الموحد في فتاوى ومقالات العلماء
-        </h2>
+        <h2 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-4">أداة البحث الموحد في الفتاوى </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           اكتب كلمتك البحثية، وسنقوم بالبحث عنها مباشرة في المواقع الرسمية لمشايخنا الكرام.
         </p>
       </motion.div>
-
       {/* Search Form Card */}
       <motion.form 
         initial={{ opacity: 0, y: 20 }}
@@ -187,7 +183,6 @@ export default function Home() {
           )}
         </div>
       </motion.form>
-
       {/* Search Results Area */}
       <AnimatePresence mode="wait">
         {hasSearched && !isSearching && (
@@ -254,7 +249,6 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
