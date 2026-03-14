@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, ChevronDown, Check, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { SITES } from "@/lib/data";
@@ -10,17 +10,14 @@ declare global {
       search?: {
         cse?: {
           element?: {
-            render: (config: { div: string; tag: string; gname: string }) => void;
-            getElement: (gname: string) => { execute: (query: string) => void } | null;
+            getElement: (gname: string) => { execute: (query: string) => void } | null | undefined;
+            getAllElements: () => Record<string, { execute: (query: string) => void }>;
           };
         };
       };
     };
   }
 }
-
-const CSE_GNAME = "almowahid-results";
-const CSE_DIV_ID = "gcse-results-container";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -30,7 +27,6 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const cseInitialized = useRef(false);
 
   const selectedSite = SITES.find((s) => s.id === selectedSiteId) || SITES[0];
 
@@ -45,45 +41,6 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Initialize the Google CSE results-only element once
-  const initCSE = useCallback(() => {
-    if (cseInitialized.current) return true;
-    const el = window.google?.search?.cse?.element;
-    if (!el) return false;
-    try {
-      el.render({ div: CSE_DIV_ID, tag: "searchresults-only", gname: CSE_GNAME });
-      cseInitialized.current = true;
-      return true;
-    } catch {
-      // Already rendered — mark as initialized
-      cseInitialized.current = true;
-      return true;
-    }
-  }, []);
-
-  // Execute search once CSE is ready
-  const executeCSESearch = useCallback((searchQuery: string) => {
-    const tryExecute = (attempts = 0) => {
-      if (attempts > 40) {
-        setIsSearching(false);
-        return;
-      }
-      const initialized = initCSE();
-      if (!initialized) {
-        setTimeout(() => tryExecute(attempts + 1), 250);
-        return;
-      }
-      const cseEl = window.google?.search?.cse?.element?.getElement(CSE_GNAME);
-      if (!cseEl) {
-        setTimeout(() => tryExecute(attempts + 1), 250);
-        return;
-      }
-      cseEl.execute(searchQuery);
-      setIsSearching(false);
-    };
-    tryExecute();
-  }, [initCSE]);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -92,15 +49,36 @@ export default function Home() {
     setHasSearched(true);
     setIsDropdownOpen(false);
 
-    // Build the query: if a specific site is selected, prefix with site: filter
-    const selectedSiteData = SITES.find((s) => s.id === selectedSiteId);
+    // Build the query: prefix with site: filter if a specific site is selected
     let finalQuery = query.trim();
-    if (selectedSiteId !== "all" && selectedSiteData?.url) {
-      const domain = selectedSiteData.url.replace(/^https?:\/\/(www\.)?/, "");
-      finalQuery = `site:${domain} ${query.trim()}`;
+    if (selectedSiteId !== "all") {
+      const selectedSiteData = SITES.find((s) => s.id === selectedSiteId);
+      if (selectedSiteData?.url) {
+        const domain = selectedSiteData.url.replace(/^https?:\/\/(www\.)?/, "");
+        finalQuery = `site:${domain} ${query.trim()}`;
+      }
     }
 
-    executeCSESearch(finalQuery);
+    // Poll until Google CSE is ready, then execute search
+    const doExecute = (attempts = 0) => {
+      if (attempts > 80) {
+        setIsSearching(false);
+        return;
+      }
+      try {
+        const el = window.google?.search?.cse?.element?.getElement("almowahid");
+        if (el) {
+          el.execute(finalQuery);
+          setIsSearching(false);
+          return;
+        }
+      } catch (_) {
+        // not ready yet
+      }
+      setTimeout(() => doExecute(attempts + 1), 200);
+    };
+
+    doExecute();
   };
 
   return (
@@ -134,6 +112,15 @@ export default function Home() {
       >
         <div className="flex flex-col gap-6">
 
+          {/* Hidden Google CSE searchbox — links to the results-only div below via data-gname */}
+          <div style={{ display: "none" }} aria-hidden="true">
+            <div
+              className="gcse-searchbox-only"
+              data-gname="almowahid"
+              data-autoSearchOnLoad="false"
+            />
+          </div>
+
           {/* Main Search Input */}
           <div className="relative">
             <div className="absolute inset-y-0 start-0 ps-5 flex items-center pointer-events-none">
@@ -150,7 +137,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Custom Select Dropdown */}
+            {/* Custom Site Dropdown */}
             <div className="relative flex-1" ref={dropdownRef}>
               <label className="block text-sm font-bold text-foreground mb-2 ms-1">
                 مكان البحث:
@@ -160,21 +147,27 @@ export default function Home() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className={cn(
                   "w-full h-14 px-5 flex items-center justify-between bg-background border-2 text-start rounded-xl transition-all focus:outline-none",
-                  isDropdownOpen ? "border-primary ring-4 ring-primary/10" : "border-border hover:border-primary/50"
+                  isDropdownOpen
+                    ? "border-primary ring-4 ring-primary/10"
+                    : "border-border hover:border-primary/50"
                 )}
               >
                 <span className="text-foreground font-medium truncate pe-4">
                   {selectedSite.name}
                 </span>
-                <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isDropdownOpen && "rotate-180")} />
+                <ChevronDown
+                  className={cn(
+                    "w-5 h-5 text-muted-foreground transition-transform duration-300",
+                    isDropdownOpen && "rotate-180"
+                  )}
+                />
               </button>
 
               {isDropdownOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.15 }}
                   className="absolute top-full start-0 w-full mt-2 bg-card border border-border rounded-xl shadow-2xl z-50 max-h-72 overflow-y-auto py-2"
                 >
                   {SITES.map((site) => (
@@ -187,7 +180,9 @@ export default function Home() {
                       }}
                       className={cn(
                         "w-full px-5 py-3 flex items-center justify-between text-start hover:bg-muted transition-colors",
-                        selectedSiteId === site.id ? "bg-primary/5 text-primary" : "text-foreground"
+                        selectedSiteId === site.id
+                          ? "bg-primary/5 text-primary"
+                          : "text-foreground"
                       )}
                     >
                       <span className={cn("font-medium", selectedSiteId === site.id && "font-bold")}>
@@ -221,10 +216,11 @@ export default function Home() {
         </div>
       </motion.form>
 
-      {/* Results Section — always in DOM so Google CSE can render into it */}
-      <div className={cn("w-full mt-10 transition-all duration-500", hasSearched ? "opacity-100" : "opacity-0 pointer-events-none h-0 overflow-hidden mt-0")}>
+      {/* ── Results Section ── */}
+      {/* IMPORTANT: the gcse-searchresults-only div must ALWAYS stay mounted in DOM */}
+      <div className="w-full mt-10">
 
-        {/* Divider + Title */}
+        {/* Section title — only visible after a search */}
         {hasSearched && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -239,18 +235,20 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Spinner while waiting for CSE */}
+        {/* Spinner while waiting for CSE response */}
         {isSearching && (
           <div className="flex justify-center py-12">
             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>
         )}
 
-        {/* Google CSE Results Container */}
-        <div
-          id={CSE_DIV_ID}
-          className="gcse-searchresults-only w-full"
-        />
+        {/* Google CSE results container — always in DOM, hidden until a search is made */}
+        <div className={cn("w-full", !hasSearched && "hidden")}>
+          <div
+            className="gcse-searchresults-only"
+            data-gname="almowahid"
+          />
+        </div>
       </div>
     </div>
   );
