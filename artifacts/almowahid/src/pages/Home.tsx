@@ -27,10 +27,8 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const selectedSite = SITES.find((s) => s.id === selectedSiteId) || SITES[0];
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -49,22 +47,24 @@ export default function Home() {
     setHasSearched(true);
     setIsDropdownOpen(false);
 
-    // Build the query: prefix with site: filter if a specific site is selected
+    // Build query — prefix with site: filter for specific site
     let finalQuery = query.trim();
     if (selectedSiteId !== "all") {
-      const selectedSiteData = SITES.find((s) => s.id === selectedSiteId);
-      if (selectedSiteData?.url) {
-        const domain = selectedSiteData.url.replace(/^https?:\/\/(www\.)?/, "");
+      const site = SITES.find((s) => s.id === selectedSiteId);
+      if (site?.url) {
+        const domain = site.url.replace(/^https?:\/\/(www\.)?/, "");
         finalQuery = `site:${domain} ${query.trim()}`;
       }
     }
 
-    // Poll until Google CSE is ready, then execute search
-    const doExecute = (attempts = 0) => {
-      if (attempts > 80) {
+    // Poll until Google CSE is ready then execute
+    const doSearch = (attempts = 0) => {
+      if (attempts > 100) {
         setIsSearching(false);
         return;
       }
+
+      // Try by gname first
       try {
         const el = window.google?.search?.cse?.element?.getElement("almowahid");
         if (el) {
@@ -72,19 +72,31 @@ export default function Home() {
           setIsSearching(false);
           return;
         }
-      } catch (_) {
-        // not ready yet
-      }
-      setTimeout(() => doExecute(attempts + 1), 200);
+      } catch (_) { /* not ready */ }
+
+      // Fall back: get first available element
+      try {
+        const all = window.google?.search?.cse?.element?.getAllElements();
+        if (all) {
+          const first = Object.values(all)[0];
+          if (first) {
+            first.execute(finalQuery);
+            setIsSearching(false);
+            return;
+          }
+        }
+      } catch (_) { /* not ready */ }
+
+      setTimeout(() => doSearch(attempts + 1), 150);
     };
 
-    doExecute();
+    doSearch();
   };
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 flex flex-col items-center">
 
-      {/* Hero Section */}
+      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -102,7 +114,7 @@ export default function Home() {
         </p>
       </motion.div>
 
-      {/* Search Form Card */}
+      {/* Search Form */}
       <motion.form
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,17 +123,7 @@ export default function Home() {
         className="w-full max-w-3xl bg-card rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl shadow-primary/5 border border-border/60 relative z-20"
       >
         <div className="flex flex-col gap-6">
-
-          {/* Hidden Google CSE searchbox — links to the results-only div below via data-gname */}
-          <div style={{ display: "none" }} aria-hidden="true">
-            <div
-              className="gcse-searchbox-only"
-              data-gname="almowahid"
-              data-autoSearchOnLoad="false"
-            />
-          </div>
-
-          {/* Main Search Input */}
+          {/* Search input */}
           <div className="relative">
             <div className="absolute inset-y-0 start-0 ps-5 flex items-center pointer-events-none">
               <Search className="w-6 h-6 text-muted-foreground" />
@@ -137,7 +139,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Custom Site Dropdown */}
+            {/* Site dropdown */}
             <div className="relative flex-1" ref={dropdownRef}>
               <label className="block text-sm font-bold text-foreground mb-2 ms-1">
                 مكان البحث:
@@ -155,12 +157,7 @@ export default function Home() {
                 <span className="text-foreground font-medium truncate pe-4">
                   {selectedSite.name}
                 </span>
-                <ChevronDown
-                  className={cn(
-                    "w-5 h-5 text-muted-foreground transition-transform duration-300",
-                    isDropdownOpen && "rotate-180"
-                  )}
-                />
+                <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isDropdownOpen && "rotate-180")} />
               </button>
 
               {isDropdownOpen && (
@@ -174,15 +171,10 @@ export default function Home() {
                     <button
                       key={site.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedSiteId(site.id);
-                        setIsDropdownOpen(false);
-                      }}
+                      onClick={() => { setSelectedSiteId(site.id); setIsDropdownOpen(false); }}
                       className={cn(
                         "w-full px-5 py-3 flex items-center justify-between text-start hover:bg-muted transition-colors",
-                        selectedSiteId === site.id
-                          ? "bg-primary/5 text-primary"
-                          : "text-foreground"
+                        selectedSiteId === site.id ? "bg-primary/5 text-primary" : "text-foreground"
                       )}
                     >
                       <span className={cn("font-medium", selectedSiteId === site.id && "font-bold")}>
@@ -195,7 +187,7 @@ export default function Home() {
               )}
             </div>
 
-            {/* Search Button */}
+            {/* Search button */}
             <div className="sm:w-40 flex items-end">
               <button
                 type="submit"
@@ -216,11 +208,10 @@ export default function Home() {
         </div>
       </motion.form>
 
-      {/* ── Results Section ── */}
-      {/* IMPORTANT: the gcse-searchresults-only div must ALWAYS stay mounted in DOM */}
+      {/* ─── Results Section ─────────────────────────────────────── */}
       <div className="w-full mt-10">
 
-        {/* Section title — only visible after a search */}
+        {/* Title — only after first search */}
         {hasSearched && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -235,20 +226,24 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Spinner while waiting for CSE response */}
+        {/* Spinner */}
         {isSearching && (
           <div className="flex justify-center py-12">
             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>
         )}
 
-        {/* Google CSE results container — always in DOM, hidden until a search is made */}
-        <div className={cn("w-full", !hasSearched && "hidden")}>
-          <div
-            className="gcse-searchresults-only"
-            data-gname="almowahid"
-          />
-        </div>
+        {/*
+          CRITICAL: gcse-searchresults-only must ALWAYS be in the DOM and NEVER
+          hidden with display:none — doing so prevents Google CSE from initialising
+          its internal iframe correctly.
+          We keep it always rendered; it simply looks empty before a search.
+        */}
+        <div
+          id="gcse-results"
+          className="gcse-searchresults-only w-full"
+          data-gname="almowahid"
+        />
       </div>
     </div>
   );
