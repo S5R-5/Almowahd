@@ -11,12 +11,15 @@ declare global {
         cse?: {
           element?: {
             getElement: (gname: string) => { execute: (query: string) => void } | null | undefined;
+            getAllElements: () => Record<string, { execute: (query: string) => void }>;
           };
         };
       };
     };
   }
 }
+
+const GNAME = "almowahid";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -29,14 +32,41 @@ export default function Home() {
   const selectedSite = SITES.find((s) => s.id === selectedSiteId) || SITES[0];
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const executeSearch = (finalQuery: string, attempts = 0) => {
+    if (attempts > 120) { setIsSearching(false); return; }
+
+    try {
+      const cseEl = window.google?.search?.cse?.element;
+      if (cseEl) {
+        // Try by explicit gname first
+        const el = cseEl.getElement(GNAME);
+        if (el) {
+          el.execute(finalQuery);
+          setIsSearching(false);
+          return;
+        }
+        // Fallback: use the first available element
+        const all = cseEl.getAllElements?.();
+        const keys = all ? Object.keys(all) : [];
+        if (keys.length > 0) {
+          all[keys[0]].execute(finalQuery);
+          setIsSearching(false);
+          return;
+        }
+      }
+    } catch (_) { /* CSE not ready */ }
+
+    setTimeout(() => executeSearch(finalQuery, attempts + 1), 150);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +76,6 @@ export default function Home() {
     setHasSearched(true);
     setIsDropdownOpen(false);
 
-    // Build query with optional site: prefix
     let finalQuery = query.trim();
     if (selectedSiteId !== "all") {
       const site = SITES.find((s) => s.id === selectedSiteId);
@@ -56,27 +85,24 @@ export default function Home() {
       }
     }
 
-    // Poll until Google CSE element is ready then execute
-    const doSearch = (attempts = 0) => {
-      if (attempts > 100) { setIsSearching(false); return; }
-      try {
-        const el = window.google?.search?.cse?.element?.getElement("almowahid");
-        if (el) {
-          el.execute(finalQuery);
-          setIsSearching(false);
-          return;
-        }
-      } catch (_) { /* not ready yet */ }
-      setTimeout(() => doSearch(attempts + 1), 150);
-    };
-
-    doSearch();
+    executeSearch(finalQuery);
   };
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 flex flex-col items-center">
 
-      {/* Hero */}
+      {/* ── Hidden Google searchbox — positioned off-screen, NOT display:none ── */}
+      {/*
+        gcse-searchbox-only + gcse-searchresults-only sharing data-gname="almowahid"
+        is the officially documented Google CSE split-widget pattern.
+        The hidden searchbox must be rendered (not display:none) so Google CSE can
+        fully initialise it; we move it off-screen via CSS (#hidden-gcse-searchbox).
+      */}
+      <div id="hidden-gcse-searchbox">
+        <div className="gcse-searchbox-only" data-gname={GNAME} />
+      </div>
+
+      {/* ── Hero ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -130,7 +156,9 @@ export default function Home() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className={cn(
                   "w-full h-14 px-5 flex items-center justify-between bg-background border-2 text-start rounded-xl transition-all focus:outline-none",
-                  isDropdownOpen ? "border-primary ring-4 ring-primary/10" : "border-border hover:border-primary/50"
+                  isDropdownOpen
+                    ? "border-primary ring-4 ring-primary/10"
+                    : "border-border hover:border-primary/50"
                 )}
               >
                 <span className="text-foreground font-medium truncate pe-4">{selectedSite.name}</span>
@@ -182,8 +210,6 @@ export default function Home() {
 
       {/* ── Results Section ── */}
       <div className="w-full mt-10">
-
-        {/* Section title — only after first search */}
         {hasSearched && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -196,22 +222,14 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Spinner */}
         {isSearching && (
           <div className="flex justify-center py-12">
             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>
         )}
 
-        {/*
-          The full gcse-search widget — ALWAYS in the DOM, never hidden with display:none.
-          CSS in index.css hides Google's own search box (.gsc-search-box-tools).
-          Only the results portion is visible to the user.
-        */}
-        <div
-          className="gcse-search w-full"
-          data-gname="almowahid"
-        />
+        {/* Results-only widget — always in DOM, linked to hidden searchbox via gname */}
+        <div className="gcse-searchresults-only w-full" data-gname={GNAME} />
       </div>
     </div>
   );

@@ -125,16 +125,18 @@
    Google Custom Search Engine — RTL Styling
    ========================================= */
 
-/* ── Hide Google's built-in search box — we use our own custom form ── */
-.gsc-search-box-tools,
-.gsc-search-box,
-.gsc-above-wrapper-area,
-.gsc-input-box,
-.gsst_a,
-.gsc-search-button,
-.gsc-search-button-v2,
-form.gsc-search-box {
-  display: none !important;
+/*
+  ── Hidden Google searchbox — rendered off-screen so CSE can initialise it,
+     but invisible to the user. We use our own custom search form instead.
+*/
+#hidden-gcse-searchbox {
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Results wrapper */
