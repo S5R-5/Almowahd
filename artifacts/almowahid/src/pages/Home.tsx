@@ -45,7 +45,7 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ── Explicitly render Google CSE elements after React mounts ── */
+  /* ── Explicitly render a single full Google CSE widget ── */
   useEffect(() => {
     const renderCse = () => {
       if (cseInitialised.current) return;
@@ -53,10 +53,16 @@ export default function Home() {
       if (!cse) return;
 
       try {
-        cse.render({ div: "cse-searchbox-hidden", tag: "searchbox-only", gname: GNAME });
-        cse.render({ div: "cse-results",          tag: "searchresults-only", gname: GNAME });
+        // Render full "search" widget with overlayResults:false so results
+        // appear INLINE below the (CSS-hidden) search box, not in a popup.
+        cse.render({
+          div: "cse-widget",
+          tag: "search",
+          gname: GNAME,
+          attributes: { overlayResults: false },
+        });
         cseInitialised.current = true;
-      } catch (_) { /* already rendered or not ready */ }
+      } catch (_) { /* already rendered */ }
     };
 
     if (window.__cseReady) {
@@ -66,13 +72,21 @@ export default function Home() {
     }
   }, []);
 
-  /* ── Execute search via the searchbox element ── */
+  /* ── Execute search via the CSE widget element ── */
   const runSearch = (finalQuery: string, attempts = 0) => {
     if (attempts > 80) { setIsSearching(false); return; }
     try {
       const el = window.google?.search?.cse?.element?.getElement(GNAME);
-      if (el) { el.execute(finalQuery); setIsSearching(false); return; }
-    } catch (_) { /* not ready */ }
+      if (el) {
+        el.execute(finalQuery);
+        setIsSearching(false);
+        // Scroll results into view
+        setTimeout(() => {
+          document.getElementById("cse-widget")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 600);
+        return;
+      }
+    } catch (_) { /* not ready yet */ }
     setTimeout(() => runSearch(finalQuery, attempts + 1), 200);
   };
 
@@ -98,11 +112,8 @@ export default function Home() {
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 flex flex-col items-center">
 
-      {/*
-        Hidden searchbox — rendered off-screen (not display:none) so Google CSE
-        can fully initialise it. Linked to results via GNAME.
-      */}
-      <div id="cse-searchbox-hidden" aria-hidden="true" />
+      {/* Google CSE full widget — always in DOM, never display:none */}
+      {/* CSS (.gsc-search-box) hides Google's own input — only results are visible */}
 
       {/* ── Hero ── */}
       <motion.div
@@ -231,8 +242,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Google CSE results-only widget — always in DOM, linked to hidden searchbox via GNAME */}
-        <div id="cse-results" className="w-full" />
+        {/* Google CSE full widget — searchbox hidden via CSS, only results visible */}
+        <div id="cse-widget" className="w-full" />
       </div>
     </div>
   );

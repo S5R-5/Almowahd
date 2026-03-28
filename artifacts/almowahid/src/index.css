@@ -126,18 +126,22 @@
    ========================================= */
 
 /*
-  ── Hidden Google searchbox — rendered off-screen so CSE can initialise it
-     fully, but invisible to the user. We use our own custom search form.
+  ── Full Google CSE widget — we hide only the search-box row.
+     The results render naturally below it inside the same div.
 */
-#cse-searchbox-hidden {
-  position: absolute !important;
-  left: -9999px !important;
-  top: -9999px !important;
-  width: 300px !important;
-  height: 60px !important;
-  overflow: hidden !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
+
+/* Hide Google's search box — we use our own custom form above */
+#cse-widget .gsc-search-box,
+#cse-widget .gsc-search-box-tools,
+#cse-widget .gsc-above-wrapper-area,
+#cse-widget form.gsc-search-box,
+#cse-widget .gsc-input-box,
+#cse-widget .gsc-search-button {
+  display: none !important;
+}
+
+#cse-widget {
+  min-height: 40px;
 }
 
 /* Results wrapper */
