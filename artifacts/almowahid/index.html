@@ -7,11 +7,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google CSE: explicit mode so React controls when elements are rendered -->
+    <script>
+      window.__gcse = {
+        parsetags: 'explicit',
+        initializationCallback: function () {
+          window.__cseReady = true;
+          if (typeof window.__cseOnReady === 'function') {
+            window.__cseOnReady();
+            window.__cseOnReady = null;
+          }
+        }
+      };
+    </script>
+    <script async src="https://cse.google.com/cse.js?cx=41888e1cfaa844df8"></script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Google Custom Search Engine - auto-parse mode -->
-    <script async src="https://cse.google.com/cse.js?cx=41888e1cfaa844df8"></script>
   </body>
 </html>

@@ -6,12 +6,15 @@ import { cn } from "@/lib/utils";
 
 declare global {
   interface Window {
+    __gcse?: object;
+    __cseReady?: boolean;
+    __cseOnReady?: (() => void) | null;
     google?: {
       search?: {
         cse?: {
           element?: {
-            getElement: (gname: string) => { execute: (query: string) => void } | null | undefined;
-            getAllElements: () => Record<string, { execute: (query: string) => void }>;
+            render: (config: { div: string; tag: string; gname?: string }) => void;
+            getElement: (gname: string) => { execute: (q: string) => void } | null | undefined;
           };
         };
       };
@@ -27,45 +30,50 @@ export default function Home() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const cseInitialised = useRef(false);
+
   const selectedSite = SITES.find((s) => s.id === selectedSiteId) || SITES[0];
 
+  /* ── Click-outside for dropdown ── */
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    function handler(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
         setIsDropdownOpen(false);
-      }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const executeSearch = (finalQuery: string, attempts = 0) => {
-    if (attempts > 120) { setIsSearching(false); return; }
+  /* ── Explicitly render Google CSE elements after React mounts ── */
+  useEffect(() => {
+    const renderCse = () => {
+      if (cseInitialised.current) return;
+      const cse = window.google?.search?.cse?.element;
+      if (!cse) return;
 
+      try {
+        cse.render({ div: "cse-searchbox-hidden", tag: "searchbox-only", gname: GNAME });
+        cse.render({ div: "cse-results",          tag: "searchresults-only", gname: GNAME });
+        cseInitialised.current = true;
+      } catch (_) { /* already rendered or not ready */ }
+    };
+
+    if (window.__cseReady) {
+      renderCse();
+    } else {
+      window.__cseOnReady = renderCse;
+    }
+  }, []);
+
+  /* ── Execute search via the searchbox element ── */
+  const runSearch = (finalQuery: string, attempts = 0) => {
+    if (attempts > 80) { setIsSearching(false); return; }
     try {
-      const cseEl = window.google?.search?.cse?.element;
-      if (cseEl) {
-        // Try by explicit gname first
-        const el = cseEl.getElement(GNAME);
-        if (el) {
-          el.execute(finalQuery);
-          setIsSearching(false);
-          return;
-        }
-        // Fallback: use the first available element
-        const all = cseEl.getAllElements?.();
-        const keys = all ? Object.keys(all) : [];
-        if (keys.length > 0) {
-          all[keys[0]].execute(finalQuery);
-          setIsSearching(false);
-          return;
-        }
-      }
-    } catch (_) { /* CSE not ready */ }
-
-    setTimeout(() => executeSearch(finalQuery, attempts + 1), 150);
+      const el = window.google?.search?.cse?.element?.getElement(GNAME);
+      if (el) { el.execute(finalQuery); setIsSearching(false); return; }
+    } catch (_) { /* not ready */ }
+    setTimeout(() => runSearch(finalQuery, attempts + 1), 200);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -84,23 +92,17 @@ export default function Home() {
         finalQuery = `site:${domain} ${query.trim()}`;
       }
     }
-
-    executeSearch(finalQuery);
+    runSearch(finalQuery);
   };
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 flex flex-col items-center">
 
-      {/* ── Hidden Google searchbox — positioned off-screen, NOT display:none ── */}
       {/*
-        gcse-searchbox-only + gcse-searchresults-only sharing data-gname="almowahid"
-        is the officially documented Google CSE split-widget pattern.
-        The hidden searchbox must be rendered (not display:none) so Google CSE can
-        fully initialise it; we move it off-screen via CSS (#hidden-gcse-searchbox).
+        Hidden searchbox — rendered off-screen (not display:none) so Google CSE
+        can fully initialise it. Linked to results via GNAME.
       */}
-      <div id="hidden-gcse-searchbox">
-        <div className="gcse-searchbox-only" data-gname={GNAME} />
-      </div>
+      <div id="cse-searchbox-hidden" aria-hidden="true" />
 
       {/* ── Hero ── */}
       <motion.div
@@ -146,6 +148,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
+
             {/* Site dropdown */}
             <div className="relative flex-1" ref={dropdownRef}>
               <label className="block text-sm font-bold text-foreground mb-2 ms-1">
@@ -210,7 +213,7 @@ export default function Home() {
 
       {/* ── Results Section ── */}
       <div className="w-full mt-10">
-        {hasSearched && (
+        {hasSearched && !isSearching && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -228,8 +231,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Results-only widget — always in DOM, linked to hidden searchbox via gname */}
-        <div className="gcse-searchresults-only w-full" data-gname={GNAME} />
+        {/* Google CSE results-only widget — always in DOM, linked to hidden searchbox via GNAME */}
+        <div id="cse-results" className="w-full" />
       </div>
     </div>
   );

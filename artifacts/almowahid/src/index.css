@@ -126,17 +126,18 @@
    ========================================= */
 
 /*
-  ── Hidden Google searchbox — rendered off-screen so CSE can initialise it,
-     but invisible to the user. We use our own custom search form instead.
+  ── Hidden Google searchbox — rendered off-screen so CSE can initialise it
+     fully, but invisible to the user. We use our own custom search form.
 */
-#hidden-gcse-searchbox {
+#cse-searchbox-hidden {
   position: absolute !important;
   left: -9999px !important;
   top: -9999px !important;
-  width: 1px !important;
-  height: 1px !important;
+  width: 300px !important;
+  height: 60px !important;
   overflow: hidden !important;
   pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 /* Results wrapper */
