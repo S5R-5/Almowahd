@@ -13,8 +13,14 @@ declare global {
       search?: {
         cse?: {
           element?: {
-            render: (config: { div: string; tag: string; gname?: string }) => void;
-            getElement: (gname: string) => { execute: (q: string) => void } | null | undefined;
+            render: (config: {
+              div: string;
+              tag: string;
+              gname?: string;
+            }) => void;
+            getElement: (
+              gname: string,
+            ) => { execute: (q: string) => void } | null | undefined;
           };
         };
       };
@@ -38,7 +44,10 @@ export default function Home() {
   /* ── Click-outside for dropdown ── */
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      )
         setIsDropdownOpen(false);
     }
     document.addEventListener("mousedown", handler);
@@ -59,10 +68,11 @@ export default function Home() {
           div: "cse-widget",
           tag: "search",
           gname: GNAME,
-          attributes: { overlayResults: false },
         });
         cseInitialised.current = true;
-      } catch (_) { /* already rendered */ }
+      } catch (_) {
+        /* already rendered */
+      }
     };
 
     if (window.__cseReady) {
@@ -74,7 +84,10 @@ export default function Home() {
 
   /* ── Execute search via the CSE widget element ── */
   const runSearch = (finalQuery: string, attempts = 0) => {
-    if (attempts > 80) { setIsSearching(false); return; }
+    if (attempts > 80) {
+      setIsSearching(false);
+      return;
+    }
     try {
       const el = window.google?.search?.cse?.element?.getElement(GNAME);
       if (el) {
@@ -82,11 +95,15 @@ export default function Home() {
         setIsSearching(false);
         // Scroll results into view
         setTimeout(() => {
-          document.getElementById("cse-widget")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          document
+            .getElementById("cse-widget")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 600);
         return;
       }
-    } catch (_) { /* not ready yet */ }
+    } catch (_) {
+      /* not ready yet */
+    }
     setTimeout(() => runSearch(finalQuery, attempts + 1), 200);
   };
 
@@ -111,7 +128,6 @@ export default function Home() {
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 flex flex-col items-center">
-
       {/* Google CSE full widget — always in DOM, never display:none */}
       {/* CSS (.gsc-search-box) hides Google's own input — only results are visible */}
 
@@ -142,7 +158,6 @@ export default function Home() {
         className="w-full max-w-3xl bg-card rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl shadow-primary/5 border border-border/60 relative z-20"
       >
         <div className="flex flex-col gap-6">
-
           {/* Search input */}
           <div className="relative">
             <div className="absolute inset-y-0 start-0 ps-5 flex items-center pointer-events-none">
@@ -159,7 +174,6 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-
             {/* Site dropdown */}
             <div className="relative flex-1" ref={dropdownRef}>
               <label className="block text-sm font-bold text-foreground mb-2 ms-1">
@@ -172,11 +186,18 @@ export default function Home() {
                   "w-full h-14 px-5 flex items-center justify-between bg-background border-2 text-start rounded-xl transition-all focus:outline-none",
                   isDropdownOpen
                     ? "border-primary ring-4 ring-primary/10"
-                    : "border-border hover:border-primary/50"
+                    : "border-border hover:border-primary/50",
                 )}
               >
-                <span className="text-foreground font-medium truncate pe-4">{selectedSite.name}</span>
-                <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isDropdownOpen && "rotate-180")} />
+                <span className="text-foreground font-medium truncate pe-4">
+                  {selectedSite.name}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-5 h-5 text-muted-foreground transition-transform duration-300",
+                    isDropdownOpen && "rotate-180",
+                  )}
+                />
               </button>
 
               {isDropdownOpen && (
@@ -190,14 +211,28 @@ export default function Home() {
                     <button
                       key={site.id}
                       type="button"
-                      onClick={() => { setSelectedSiteId(site.id); setIsDropdownOpen(false); }}
+                      onClick={() => {
+                        setSelectedSiteId(site.id);
+                        setIsDropdownOpen(false);
+                      }}
                       className={cn(
                         "w-full px-5 py-3 flex items-center justify-between text-start hover:bg-muted transition-colors",
-                        selectedSiteId === site.id ? "bg-primary/5 text-primary" : "text-foreground"
+                        selectedSiteId === site.id
+                          ? "bg-primary/5 text-primary"
+                          : "text-foreground",
                       )}
                     >
-                      <span className={cn("font-medium", selectedSiteId === site.id && "font-bold")}>{site.name}</span>
-                      {selectedSiteId === site.id && <Check className="w-5 h-5 text-primary" />}
+                      <span
+                        className={cn(
+                          "font-medium",
+                          selectedSiteId === site.id && "font-bold",
+                        )}
+                      >
+                        {site.name}
+                      </span>
+                      {selectedSiteId === site.id && (
+                        <Check className="w-5 h-5 text-primary" />
+                      )}
                     </button>
                   ))}
                 </motion.div>
@@ -214,7 +249,10 @@ export default function Home() {
                 {isSearching ? (
                   <div className="w-6 h-6 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <><Search className="w-5 h-5" /><span>بحث</span></>
+                  <>
+                    <Search className="w-5 h-5" />
+                    <span>بحث</span>
+                  </>
                 )}
               </button>
             </div>
@@ -231,7 +269,9 @@ export default function Home() {
             className="flex items-center gap-3 mb-6"
           >
             <div className="h-px flex-1 bg-border" />
-            <h3 className="text-2xl font-display font-bold text-foreground px-4">نتائج البحث</h3>
+            <h3 className="text-2xl font-display font-bold text-foreground px-4">
+              نتائج البحث
+            </h3>
             <div className="h-px flex-1 bg-border" />
           </motion.div>
         )}
